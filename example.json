@@ -1,0 +1,17 @@
+[
+  {
+    "amount": 1700,
+    "description": "avtobus",
+    "type": "out"
+  },
+  {
+    "amount": 30000,
+    "description": "ovqatlanish",
+    "type": "out"
+  },
+  {
+    "amount": 150000,
+    "description": "naushnik",
+    "type": "out"
+  }
+]
