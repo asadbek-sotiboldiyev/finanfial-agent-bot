@@ -147,4 +147,3 @@ def save_transactions(transactions, user_id, extracted_transations_id):
     )
     conn.commit()
     conn.close()
-    

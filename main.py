@@ -1,11 +1,8 @@
-import logging
 import asyncio
+import logging
 
-from telegram import (
-    Update,
-    KeyboardButton,
-    ReplyKeyboardMarkup
-)
+from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -14,29 +11,16 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-import handlers.transactions as hnd_tr
-import handlers.feedback as hnd_fd
 
 import database as db
-from dotenv import load_dotenv
-import os
+import handlers.feedback as hnd_fd
+import handlers.transactions as hnd_tr
+from global_config import MAIN_KEYBOARDS, TOKEN
+
 load_dotenv()
 
 ASKING_NAME = 1
-MAKE_TRANSACTIONS = 2
 
-HANDLE_FEEDBACK = 1
-
-HANDLE_TRANSACTION = 1
-
-MAIN_KEYBOARDS = ReplyKeyboardMarkup([
-    [KeyboardButton("Yangi harajat")],
-    [KeyboardButton("Bugungi hisobot")],
-    [KeyboardButton("Feedback")]
-], resize_keyboard=True)
-
-TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 
 # Logging sozlash
 logging.basicConfig(
@@ -54,7 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ASKING_NAME
     else:
-        name  = check_user_exists[0]
+        name = check_user_exists[0]
         await update.message.reply_text(
             f"Salom, {name}!\nQuyidagi panel orqali botdan foydalaning",
             reply_markup=MAIN_KEYBOARDS,
@@ -97,10 +81,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # )
 
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bekor qilindi")
-    return ConversationHandler.END
-
 def main():
     application = Application.builder().token(TOKEN).build()
     db.init_database()
@@ -112,26 +92,14 @@ def main():
         },
         fallbacks=[CommandHandler("start", start)],
     )
-    conv_feedback = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Feedback$'), hnd_fd.start_feedback)],
-        states={
-            HANDLE_FEEDBACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, hnd_fd.handle_feedback)]
-        },
-        fallbacks=[CommandHandler("cancel", cancel)]
-    )
-    conv_new_transaction = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Yangi harajat$'), hnd_tr.start_transaction)],
-        states={
-            HANDLE_TRANSACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, hnd_tr.handle_transaction)]
-        },
-        fallbacks=[CommandHandler("cancel", cancel)]
-    )
-    
+
     logger.info("Bot started")
     application.add_handler(conv_resgister)
-    application.add_handler(conv_feedback)
-    application.add_handler(conv_new_transaction)
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(hnd_fd.conv_feedback)
+    application.add_handler(hnd_tr.conv_new_transaction)
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+    )
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
