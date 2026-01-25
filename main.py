@@ -4,8 +4,7 @@ import asyncio
 from telegram import (
     Update,
     KeyboardButton,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove
+    ReplyKeyboardMarkup
 )
 from telegram.ext import (
     Application,
@@ -16,6 +15,7 @@ from telegram.ext import (
     filters,
 )
 import handlers.transactions as hnd_tr
+import handlers.feedback as hnd_fd
 
 import database as db
 from dotenv import load_dotenv
@@ -30,7 +30,7 @@ HANDLE_FEEDBACK = 1
 HANDLE_TRANSACTION = 1
 
 MAIN_KEYBOARDS = ReplyKeyboardMarkup([
-    [KeyboardButton("Yangi yozish")],
+    [KeyboardButton("Yangi harajat")],
     [KeyboardButton("Bugungi hisobot")],
     [KeyboardButton("Feedback")]
 ], resize_keyboard=True)
@@ -46,12 +46,6 @@ logger = logging.getLogger(__name__)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #     await update.message.reply_text(
-    #         "Assalomu alaykum!\nQanday xarajatlar qilganingiz va yoki daromadingizni yozing. Men bularni eslab qolib kunlik va haftalik harajatlaringizni hisoblab hisobotlar berib boraman\n\
-    # Bu bilan siz xarajatlaringizni kuzatib borasiz.\
-    # Shu kabi matn yozsangiz kifoya:\n\n\
-    # 1700 bilan atobusda borib keldim. 30mingga tushlik qildim."
-    #     )
     user_id = update.effective_user.id
     check_user_exists = await asyncio.to_thread(db.is_user_exists, user_id)
     if not check_user_exists:
@@ -60,8 +54,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ASKING_NAME
     else:
+        name  = check_user_exists[0]
         await update.message.reply_text(
-            "Salom",
+            f"Salom, {name}!\nQuyidagi panel orqali botdan foydalaning",
             reply_markup=MAIN_KEYBOARDS,
         )
         return ConversationHandler.END
@@ -83,29 +78,6 @@ async def receive_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=MAIN_KEYBOARDS,
     )
 
-    return ConversationHandler.END
-
-async def start_feedback(update: Update, conect: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Xizmat bo'yicha fikr-mulohaza, talab va takliflaringizni adminga yozib qoldiring.\nBekor qilish uchun - /cancel",
-        reply_markup = ReplyKeyboardRemove()
-    )
-    return HANDLE_FEEDBACK
-
-async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    message = update.message.text
-    firstname = update.effective_user.first_name
-    username = update.effective_user.username
-    await context.bot.send_message(
-        chat_id = ADMIN_CHAT_ID,
-        text = f"✍️ NEW FEEDBACK\nuser_id: {user_id}\nname: {firstname}\n" + (f"@{username}" if username else "")
-    )
-    await context.bot.send_message(
-        chat_id = ADMIN_CHAT_ID,
-        text = f"=== FEEDBACK ===\n{message}"
-    )
-    await update.message.reply_text("Feedback uchun rahmat!\n Xabaringiz adminga yuborildi", reply_markup=MAIN_KEYBOARDS)
     return ConversationHandler.END
 
 
@@ -141,14 +113,14 @@ def main():
         fallbacks=[CommandHandler("start", start)],
     )
     conv_feedback = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Feedback$'), start_feedback)],
+        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Feedback$'), hnd_fd.start_feedback)],
         states={
-            HANDLE_FEEDBACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_feedback)]
+            HANDLE_FEEDBACK: [MessageHandler(filters.TEXT & ~filters.COMMAND, hnd_fd.handle_feedback)]
         },
         fallbacks=[CommandHandler("cancel", cancel)]
     )
     conv_new_transaction = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Yangi yozish$'), hnd_tr.start_transaction)],
+        entry_points=[MessageHandler(filters.TEXT & filters.Regex(r'^Yangi harajat$'), hnd_tr.start_transaction)],
         states={
             HANDLE_TRANSACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, hnd_tr.handle_transaction)]
         },
