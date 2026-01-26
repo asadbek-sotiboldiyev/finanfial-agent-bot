@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random as rd
 
 from telegram import Update
 from telegram.ext import (
@@ -18,11 +19,26 @@ HANDLE_TRANSACTION = 1
 
 async def extract_and_save(user_id, raw_message_id, message):
     # text = Agent.ask(message)
-    text = """[{"amount": 1700,"description": "avtobus","type": "out"},{"amount": 30000,"description": "ovqatlanish","type": "out"},{"amount": 150000,"description": "naushnik","type": "out"}]"""  # example for testing
+
+    # BEGIN of generating random data
+    # text = """[{"amount": 18000,"description": "ovqatlanish","type": "out"},{"amount": 12000,"description": "sharbat","type": "out"}]"""  # example for testing
+    random_cnt = rd.randint(1, 5)
+    random_data = []
+    for i in range(random_cnt):
+        random_data.append(
+            json.dumps(
+                {
+                    "amount": rd.randint(1, 500) * 1000,
+                    "description": f"random_{i}",
+                    "type": rd.choice(["in", "out"]),
+                }
+            )
+        )
+    text = "[" + ",".join(random_data) + "]"
+    # END of random data for testing
+
     transactions = json.loads(text)
-    row_id = await asyncio.to_thread(
-        db.save_extracted_transactions, raw_message_id, text
-    )
+    row_id = await asyncio.to_thread(db.save_extracted_data, raw_message_id, text)
     await asyncio.to_thread(
         db.save_transactions,
         transactions,
@@ -34,7 +50,7 @@ async def extract_and_save(user_id, raw_message_id, message):
 
 async def start_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Xarajatlar yoki daromadingizni shu kabi matn yozsangiz:\n>1700 bilan atobusda borib keldim. 30mingga tushlik qildim",
+        "Xarajatlar yoki daromadingizni shu kabi matn yozing:\n>1700 bilan atobusda borib keldim\\. 30mingga tushlik qildim",
         parse_mode="MarkdownV2",
     )
     return HANDLE_TRANSACTION
@@ -48,7 +64,6 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.message.reply_text("Saqlanyabdi...")
 
-    # await asyncio.sleep(3)
     # save_message -> AI -> save_ai_extract -> save_transaction -> return to user
 
     raw_message_id = await asyncio.to_thread(
