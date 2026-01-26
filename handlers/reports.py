@@ -50,18 +50,3 @@ handlers = [
         handle_report,
     )
 ]
-
-# conv_new_transaction = ConversationHandler(
-#     entry_points=[
-#         MessageHandler(
-#             filters.TEXT & filters.Regex(r"^Bugungi hisobot$"),
-#             handle_report,
-#         )
-#     ],
-#     states={
-#         TODAY: [
-#             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_transaction)
-#         ]
-#     },
-#     fallbacks=[CommandHandler("cancel", cancel)],
-# )
