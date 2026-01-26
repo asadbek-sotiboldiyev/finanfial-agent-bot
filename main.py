@@ -14,6 +14,7 @@ from telegram.ext import (
 
 import database as db
 import handlers.feedback as hnd_fd
+import handlers.reports as hnd_rp
 import handlers.transactions as hnd_tr
 from global_config import MAIN_KEYBOARDS, TOKEN
 
@@ -95,6 +96,7 @@ def main():
 
     logger.info("Bot started")
     application.add_handler(conv_resgister)
+    application.add_handlers(hnd_rp.handlers)
     application.add_handler(hnd_fd.conv_feedback)
     application.add_handler(hnd_tr.conv_new_transaction)
     application.add_handler(

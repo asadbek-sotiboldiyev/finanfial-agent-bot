@@ -2,7 +2,7 @@ import asyncio
 import json
 import random as rd
 
-from telegram import Update
+from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -12,7 +12,7 @@ from telegram.ext import (
 )
 
 import database as db
-from global_config import cancel
+from global_config import MAIN_KEYBOARDS, cancel
 
 HANDLE_TRANSACTION = 1
 
@@ -52,6 +52,7 @@ async def start_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Xarajatlar yoki daromadingizni shu kabi matn yozing:\n>1700 bilan atobusda borib keldim\\. 30mingga tushlik qildim",
         parse_mode="MarkdownV2",
+        reply_markup=ReplyKeyboardRemove(),
     )
     return HANDLE_TRANSACTION
 
@@ -72,7 +73,7 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await extract_and_save(chat_id, raw_message_id, message)
 
     await context.bot.delete_message(chat_id=chat_id, message_id=int(message_id) + 1)
-    await update.message.reply_text("Saqlandi")
+    await update.message.reply_text("Saqlandi", reply_markup=MAIN_KEYBOARDS)
     return ConversationHandler.END
 
 

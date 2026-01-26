@@ -93,9 +93,5 @@ for index, message in enumerate(data):
     transactions = json.loads(text)
     row_id = save_extracted_data(message_row_id, text)
     print("Extracted data saved")
-    save_transactions(
-        transactions,
-        user_id,
-        row_id,
-    )
+    save_transactions(transactions, user_id, row_id, date=message["sent_time"][:10])
     print(f"{random_cnt} transactions saved")

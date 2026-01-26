@@ -1,11 +1,13 @@
 import sqlite3
 from datetime import datetime
 
+DBNAME = "my_database.db"
+
 
 # Database setup
 def init_database():
     """Initialize database tables"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -62,7 +64,7 @@ def init_database():
 # Database functions
 def is_user_exists(user_id):
     """Check if user exists in database"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -76,7 +78,7 @@ def is_user_exists(user_id):
 
 def save_user(user_id, firstname, original_name, username):
     """Save new user to database"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -90,7 +92,7 @@ def save_user(user_id, firstname, original_name, username):
 
 def update_user(user_id, firstname):
     """Update user's firstname"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -104,7 +106,7 @@ def update_user(user_id, firstname):
 
 def save_message(user_id, tg_message_id, message, sent_time):
     """Save raw_message"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -120,7 +122,7 @@ def save_message(user_id, tg_message_id, message, sent_time):
 
 def save_extracted_data(raw_message_id, json_transactions):
     """Insert result of raw_message from AI"""
-    conn = sqlite3.connect("my_database.db")
+    conn = sqlite3.connect(DBNAME)
 
     # Create a cursor object
     cursor = conn.cursor()
@@ -134,10 +136,11 @@ def save_extracted_data(raw_message_id, json_transactions):
     return row_id
 
 
-def save_transactions(transactions, user_id, extracted_data_id):
+def save_transactions(transactions, user_id, extracted_data_id, date=None):
     """Insert transactions"""
-    conn = sqlite3.connect("my_database.db")
-    date = datetime.now().strftime("%d-%m-%Y")
+    conn = sqlite3.connect(DBNAME)
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
 
     transactions_list = []
     for transaction in transactions:
@@ -160,3 +163,20 @@ def save_transactions(transactions, user_id, extracted_data_id):
     )
     conn.commit()
     conn.close()
+
+
+def get_transactions(user_id, date):
+    """Get transactions"""
+    conn = sqlite3.connect(DBNAME)
+    cursor = conn.cursor()
+    conn.set_trace_callback(lambda query: print(f"Executing query: {query}"))
+    cursor.execute(
+        "SELECT amount, type FROM transactions WHERE date = ? AND user_id = ?",
+        (
+            date,
+            user_id,
+        ),
+    )
+    transactions = cursor.fetchall()
+    conn.close()
+    return transactions
