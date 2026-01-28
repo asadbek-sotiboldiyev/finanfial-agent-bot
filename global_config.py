@@ -11,6 +11,9 @@ load_dotenv()
 
 TOKEN = str(os.getenv("BOT_TOKEN"))
 ADMIN_CHAT_ID = str(os.getenv("ADMIN_CHAT_ID"))
+WEBHOOK_PATH = "/webhook"
+APP_URL = str(os.getenv("APP_URL"))
+PORT = 8000
 
 
 MAIN_KEYBOARDS = ReplyKeyboardMarkup(

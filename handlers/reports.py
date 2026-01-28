@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 
 from telegram import Update
@@ -8,7 +7,7 @@ from telegram.ext import (
     filters,
 )
 
-import database as db
+import database_async as db
 
 TODAY = 1
 
@@ -16,7 +15,7 @@ TODAY = 1
 async def handle_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     date = datetime.now().strftime("%Y-%m-%d")
-    transactions = await asyncio.to_thread(db.get_transactions, user_id, date)
+    transactions = await db.get_transactions(user_id, date)
     print(transactions)
     total_count = len(transactions)
 

@@ -1,4 +1,3 @@
-import asyncio
 import json
 
 from telegram import ReplyKeyboardRemove, Update
@@ -10,7 +9,7 @@ from telegram.ext import (
     filters,
 )
 
-import database as db
+import database_async as db
 from agent import Agent
 from global_config import MAIN_KEYBOARDS, cancel, send_message_to_admin
 
@@ -19,10 +18,10 @@ HANDLE_TRANSACTION = 1
 
 async def extract_and_save(user_id, raw_message_id, message):
     # TODO: add messsage to MessageQueue for processing
-    text = Agent().ask(message)
+    text = await Agent().ask(message)
     # text = """[{"amount": 18000,"description": "ovqatlanish","type": "out"},{"amount": 12000,"description": "sharbat","type": "out"}]"""  # example for testing
 
-    row_id = await asyncio.to_thread(db.save_extracted_data, raw_message_id, text)
+    row_id = await db.save_extracted_data(raw_message_id, text)
     completed = False
     try:
         transactions = json.loads(text)
@@ -37,8 +36,7 @@ async def extract_and_save(user_id, raw_message_id, message):
 
         return completed, []
 
-    await asyncio.to_thread(
-        db.save_transactions,
+    await db.save_transactions(
         transactions,
         user_id,
         row_id,
@@ -66,9 +64,7 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # save_message -> AI -> save_ai_extract -> save_transaction -> return to user
 
-    raw_message_id = await asyncio.to_thread(
-        db.save_message, chat_id, message_id, message, sent_time
-    )
+    raw_message_id = await db.save_message(chat_id, message_id, message, sent_time)
     is_completed, transactions = await extract_and_save(
         chat_id, raw_message_id, message
     )
