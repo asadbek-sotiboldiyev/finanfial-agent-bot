@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from telegram import KeyboardButton, ReplyKeyboardMarkup, Update
+from telegram import Bot, KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -26,3 +26,8 @@ MAIN_KEYBOARDS = ReplyKeyboardMarkup(
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Bekor qilindi")
     return ConversationHandler.END
+
+
+async def send_message_to_admin(message: str):
+    bot = Bot(token=TOKEN)
+    await bot.send_message(chat_id=ADMIN_CHAT_ID, text=message)

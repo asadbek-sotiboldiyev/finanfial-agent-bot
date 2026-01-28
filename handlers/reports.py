@@ -1,19 +1,14 @@
 import asyncio
-import json
-import random as rd
 from datetime import datetime
 
 from telegram import Update
 from telegram.ext import (
-    CommandHandler,
     ContextTypes,
-    ConversationHandler,
     MessageHandler,
     filters,
 )
 
 import database as db
-from global_config import cancel
 
 TODAY = 1
 

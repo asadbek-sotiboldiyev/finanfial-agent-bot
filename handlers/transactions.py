@@ -1,6 +1,5 @@
 import asyncio
 import json
-import random as rd
 
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (
@@ -12,40 +11,39 @@ from telegram.ext import (
 )
 
 import database as db
-from global_config import MAIN_KEYBOARDS, cancel
+from agent import Agent
+from global_config import MAIN_KEYBOARDS, cancel, send_message_to_admin
 
 HANDLE_TRANSACTION = 1
 
 
 async def extract_and_save(user_id, raw_message_id, message):
-    # text = Agent.ask(message)
-
-    # BEGIN of generating random data
+    text = Agent().ask(message)
     # text = """[{"amount": 18000,"description": "ovqatlanish","type": "out"},{"amount": 12000,"description": "sharbat","type": "out"}]"""  # example for testing
-    random_cnt = rd.randint(1, 5)
-    random_data = []
-    for i in range(random_cnt):
-        random_data.append(
-            json.dumps(
-                {
-                    "amount": rd.randint(1, 500) * 1000,
-                    "description": f"random_{i}",
-                    "type": rd.choice(["in", "out"]),
-                }
-            )
-        )
-    text = "[" + ",".join(random_data) + "]"
-    # END of random data for testing
 
-    transactions = json.loads(text)
     row_id = await asyncio.to_thread(db.save_extracted_data, raw_message_id, text)
+    completed = False
+    try:
+        transactions = json.loads(text)
+    except json.JSONDecodeError as e:
+        print(e)
+        print(
+            f"AI returned non JSON: extracted_data_id: {row_id} | raw_message_id: {raw_message_id}"
+        )
+        await send_message_to_admin(
+            f"AI returned non JSON ⚠️\n\nextracted_data_id: <pre>{row_id}</pre>\nraw_message_id: <pre>{raw_message_id}</pre>"
+        )
+
+        return completed, []
+
     await asyncio.to_thread(
         db.save_transactions,
         transactions,
         user_id,
         row_id,
     )
-    return True
+    completed = True
+    return completed, transactions
 
 
 async def start_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,10 +68,31 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
     raw_message_id = await asyncio.to_thread(
         db.save_message, chat_id, message_id, message, sent_time
     )
-    await extract_and_save(chat_id, raw_message_id, message)
-
+    is_completed, transactions = await extract_and_save(
+        chat_id, raw_message_id, message
+    )
+    if not is_completed:
+        await update.message.reply_text("Xatolik yuz berdi")
+        return ConversationHandler.END
+    elif is_completed and transactions == []:
+        await update.message.reply_text("So'rovingizdan ma'lumotlar topilmadi")
+        return ConversationHandler.END
+    text_transactioins = []
+    for transaction in transactions:
+        text_transactioins.append(
+            ("↗️ " if transaction["type"] == "out" else "↙️ ")
+            + format(transaction["amount"], ",")
+            + " <b>"
+            + transaction["description"]
+            + "</b>"
+        )
+    print("✅ Saqlandi\n\n" + "\n".join(text_transactioins))
     await context.bot.delete_message(chat_id=chat_id, message_id=int(message_id) + 1)
-    await update.message.reply_text("Saqlandi", reply_markup=MAIN_KEYBOARDS)
+    await update.message.reply_text(
+        "✅ Saqlandi\n\n" + "\n".join(text_transactioins),
+        reply_markup=MAIN_KEYBOARDS,
+        parse_mode="HTML",
+    )
     return ConversationHandler.END
 
 

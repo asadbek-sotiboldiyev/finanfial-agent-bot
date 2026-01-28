@@ -1,8 +1,15 @@
 import logging
 import os
 
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SYSTEM_INSTRUCTION = """Extract transactions data from given text and return JSON data in this format: [{"amount":300,"description":"ovqatlanish","type":"in|out"}]. Only return list of JSON, don't return anything else"""
+MODEL_NAME = str(os.getenv("GEMINI_MODEL_NAME"))
 
 logger = logging.getLogger(__name__)
 
@@ -11,13 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 class Agent:
-    def __init__(self, api_key, model_name):
+    def __init__(self):
         """Bir marta API key bilan yaratiladi"""
-        self.client = genai.Client(api_key=api_key)
-        self.model_name = model_name
-        self.system_instruction = """Extract data from given text and return JSON data in this format: {"amount":300, "description": "ovqatlanish", "type":"in|out"}. Only return JSON, don't return anything else"""
+        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        self.model_name = MODEL_NAME
+        self.system_instruction = SYSTEM_INSTRUCTION
 
-    def ask(self, message):
+    def ask(self, message) -> str:
         """Savol berish va javob olish"""
         response = self.client.models.generate_content(
             model=self.model_name,
@@ -27,4 +34,4 @@ class Agent:
                 response_mime_type="application/json",
             ),
         )
-        return response.text
+        return str(response.text)
