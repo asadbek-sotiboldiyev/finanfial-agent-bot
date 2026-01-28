@@ -180,3 +180,16 @@ def get_transactions(user_id, date):
     transactions = cursor.fetchall()
     conn.close()
     return transactions
+
+
+def get_raw_message_by_id(raw_message_id):
+    """Get raw message by id"""
+    conn = sqlite3.connect(DBNAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT user_id, raw_message FROM raw_messages WHERE id = ?",
+        (raw_message_id,),
+    )
+    raw_message = cursor.fetchone()
+    conn.close()
+    return raw_message

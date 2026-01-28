@@ -24,7 +24,7 @@ class Agent:
         self.model_name = MODEL_NAME
         self.system_instruction = SYSTEM_INSTRUCTION
 
-    def ask(self, message) -> str:
+    async def ask(self, message) -> str:
         """Savol berish va javob olish"""
         response = self.client.models.generate_content(
             model=self.model_name,
