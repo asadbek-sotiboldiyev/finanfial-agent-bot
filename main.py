@@ -62,6 +62,7 @@ async def receive_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Feedback tugmasi orqali adminga fikrlaringiz va tavsiyalaringizni yuborish yuborishingiz mumkin.",
         reply_markup=MAIN_KEYBOARDS,
     )
+    # TODO: send notification to admin
 
     return ConversationHandler.END
 

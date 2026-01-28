@@ -18,6 +18,7 @@ HANDLE_TRANSACTION = 1
 
 
 async def extract_and_save(user_id, raw_message_id, message):
+    # TODO: add messsage to MessageQueue for processing
     text = Agent().ask(message)
     # text = """[{"amount": 18000,"description": "ovqatlanish","type": "out"},{"amount": 12000,"description": "sharbat","type": "out"}]"""  # example for testing
 
