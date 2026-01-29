@@ -7,7 +7,7 @@ from telegram.ext import (
     filters,
 )
 
-from global_config import ADMIN_CHAT_ID, MAIN_KEYBOARDS, cancel
+from global_config import ADMIN_CHAT_ID, cancel, get_main_keyboards
 
 HANDLE_FEEDBACK = 1
 
@@ -35,7 +35,7 @@ async def handle_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(
         "Feedback uchun rahmat!\n Xabaringiz adminga yuborildi",
-        reply_markup=MAIN_KEYBOARDS,
+        reply_markup=await get_main_keyboards(user_id),
     )
     return ConversationHandler.END
 

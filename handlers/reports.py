@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from telegram import Update
 from telegram.ext import (
     ContextTypes,
@@ -14,7 +12,7 @@ TODAY = 1
 
 async def handle_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    date = datetime.now().strftime("%Y-%m-%d")
+    date = update.message.date.strftime("%Y-%m-%d")
     transactions = await db.get_transactions(user_id, date)
     print(transactions)
     total_count = len(transactions)

@@ -8,7 +8,7 @@ from google.genai import types
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-SYSTEM_INSTRUCTION = """Extract transactions data from given text and return JSON data in this format: [{"amount":300,"description":"ovqatlanish","type":"in|out"}]. Only return list of JSON, don't return anything else"""
+SYSTEM_INSTRUCTION = """Extract transactions data from given text and return JSON data in this format: [{"amount":300,"description":"ovqatlanish","type":"in|out"}].If there is no transaction data, return an empty list. Don't add ident tabs, spaces. Only return list of JSON, don't return anything else"""
 MODEL_NAME = str(os.getenv("GEMINI_MODEL_NAME"))
 
 logger = logging.getLogger(__name__)

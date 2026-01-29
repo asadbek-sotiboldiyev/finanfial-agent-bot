@@ -176,3 +176,27 @@ async def get_raw_message_by_id(raw_message_id):
         )
         raw_message = await cursor.fetchone()
         return raw_message
+
+
+async def get_basic_stats():
+    """Get basic stats"""
+    async with aiosqlite.connect(DBNAME) as conn:
+        cursor = await conn.cursor()
+        await cursor.execute("SELECT count(user_id) FROM users")
+        user_count = await cursor.fetchone()
+        await cursor.execute("SELECT count(id) FROM raw_messages")
+        raw_message_count = await cursor.fetchone()
+        await cursor.execute("SELECT count(id) FROM transactions")
+        transaction_count = await cursor.fetchone()
+        return user_count, raw_message_count, transaction_count
+
+
+async def get_users_ids():
+    """Get all users ids"""
+    async with aiosqlite.connect(DBNAME) as conn:
+        cursor = await conn.cursor()
+        # Note: aiosqlite doesn't support set_trace_callback
+        # You can use logging instead for debugging
+        await cursor.execute("SELECT user_id FROM users")
+        ids = await cursor.fetchall()
+        return ids

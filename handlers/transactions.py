@@ -1,5 +1,6 @@
 import json
 
+import google.api_core.exceptions as gae
 from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (
     CommandHandler,
@@ -11,18 +12,22 @@ from telegram.ext import (
 
 import database_async as db
 from agent import Agent
-from global_config import MAIN_KEYBOARDS, cancel, send_message_to_admin
+from global_config import cancel, get_main_keyboards, send_message_to_admin
 
 HANDLE_TRANSACTION = 1
+COMPLETED, RESOURCE, ERROR, EMPTY = range(4)
 
 
 async def extract_and_save(user_id, raw_message_id, message):
     # TODO: add messsage to MessageQueue for processing
-    text = await Agent().ask(message)
+    try:
+        text = await Agent().ask(message)
+    except gae.ResourceExhausted:
+        print("ERROR: Resource exhausted")
+        return RESOURCE, []
     # text = """[{"amount": 18000,"description": "ovqatlanish","type": "out"},{"amount": 12000,"description": "sharbat","type": "out"}]"""  # example for testing
 
     row_id = await db.save_extracted_data(raw_message_id, text)
-    completed = False
     try:
         transactions = json.loads(text)
     except json.JSONDecodeError as e:
@@ -34,15 +39,16 @@ async def extract_and_save(user_id, raw_message_id, message):
             f"AI returned non JSON ⚠️\n\nextracted_data_id: <pre>{row_id}</pre>\nraw_message_id: <pre>{raw_message_id}</pre>"
         )
 
-        return completed, []
+        return ERROR, []
 
     await db.save_transactions(
         transactions,
         user_id,
         row_id,
     )
-    completed = True
-    return completed, transactions
+    if transactions == []:
+        return EMPTY, transactions
+    return COMPLETED, transactions
 
 
 async def start_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -65,15 +71,26 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # save_message -> AI -> save_ai_extract -> save_transaction -> return to user
 
     raw_message_id = await db.save_message(chat_id, message_id, message, sent_time)
-    is_completed, transactions = await extract_and_save(
-        chat_id, raw_message_id, message
-    )
-    if not is_completed:
-        await update.message.reply_text("Xatolik yuz berdi")
+    status, transactions = await extract_and_save(chat_id, raw_message_id, message)
+    error_message = ""
+    if status != COMPLETED:
+        if status == ERROR:
+            error_message = "Xatolik yuz berdi"
+        elif status == EMPTY:
+            error_message = "So'rovingizdan ma'lumotlar topilmadi"
+        elif status == RESOURCE:
+            error_message = (
+                "Botga yuklama oshib ketti. Birozdan so'ng qayta urinib ko'ring"
+            )
+            await send_message_to_admin("⚠️ So'rovlar limitdan oshib ketti")
+        await update.message.reply_text(
+            error_message, reply_markup=await get_main_keyboards(chat_id)
+        )
+        await context.bot.delete_message(
+            chat_id=chat_id, message_id=int(message_id) + 1
+        )
         return ConversationHandler.END
-    elif is_completed and transactions == []:
-        await update.message.reply_text("So'rovingizdan ma'lumotlar topilmadi")
-        return ConversationHandler.END
+
     text_transactioins = []
     for transaction in transactions:
         text_transactioins.append(
@@ -83,11 +100,10 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
             + transaction["description"]
             + "</b>"
         )
-    print("✅ Saqlandi\n\n" + "\n".join(text_transactioins))
     await context.bot.delete_message(chat_id=chat_id, message_id=int(message_id) + 1)
     await update.message.reply_text(
         "✅ Saqlandi\n\n" + "\n".join(text_transactioins),
-        reply_markup=MAIN_KEYBOARDS,
+        reply_markup=await get_main_keyboards(chat_id),
         parse_mode="HTML",
     )
     return ConversationHandler.END

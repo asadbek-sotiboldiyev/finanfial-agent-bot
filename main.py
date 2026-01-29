@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
+import pytz
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
@@ -10,15 +11,24 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ConversationHandler,
+    Defaults,
     MessageHandler,
     filters,
 )
 
 import database_async as db
+import handlers.adminpanel as hnd_ad
 import handlers.feedback as hnd_fd
 import handlers.reports as hnd_rp
 import handlers.transactions as hnd_tr
-from global_config import APP_URL, MAIN_KEYBOARDS, PORT, TOKEN, WEBHOOK_PATH
+from global_config import (
+    APP_URL,
+    PORT,
+    TOKEN,
+    WEBHOOK_PATH,
+    get_main_keyboards,
+    send_message_to_admin,
+)
 
 load_dotenv()
 
@@ -45,7 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = check_user_exists[0]
         await update.message.reply_text(
             f"Salom, {name}!\nQuyidagi panel orqali botdan foydalaning",
-            reply_markup=MAIN_KEYBOARDS,
+            reply_markup=await get_main_keyboards(user_id),
         )
         return ConversationHandler.END
 
@@ -63,9 +73,14 @@ async def receive_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Tanishganimdan hursandman, {firstname}! 😊\n\n"
         "Xaridlar, xarajat va daromadlaringizni ayting. Men buni siz uchun saqlab boraman va hisobotlar berib boraman.\n"
         "Feedback tugmasi orqali adminga fikrlaringiz va tavsiyalaringizni yuborish yuborishingiz mumkin.",
-        reply_markup=MAIN_KEYBOARDS,
+        reply_markup=await get_main_keyboards(user_id),
     )
+
     # TODO: send notification to admin
+    await send_message_to_admin(
+        f"New user registered: <b>{original_name}</b> - ({firstname})\nuser_id: <pre>{user_id}</pre>\nusername: @{username}",
+        parse_mode="HTML",
+    )
 
     return ConversationHandler.END
 
@@ -73,7 +88,9 @@ async def receive_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global application
-    application = Application.builder().token(TOKEN).build()
+    timezone_uz = pytz.timezone("Asia/Tashkent")
+    defaults = Defaults(tzinfo=timezone_uz)
+    application = Application.builder().token(TOKEN).defaults(defaults).build()
     await db.init_database()
 
     conv_resgister = ConversationHandler(
@@ -89,6 +106,7 @@ async def lifespan(app: FastAPI):
     application.add_handlers(hnd_rp.handlers)
     application.add_handler(hnd_fd.conv_feedback)
     application.add_handler(hnd_tr.conv_new_transaction)
+    application.add_handler(hnd_ad.conv_admin)
 
     await application.initialize()
     await application.start()
