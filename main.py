@@ -43,6 +43,19 @@ logger = logging.getLogger(__name__)
 application: Application | None = None
 
 
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Botdan foydalanish uchunqo'llanma.\n\n"
+        "1. /start - Botni ishga tushirish\n"
+        "2. /help - Yordam\n"
+        "3. /cancel- Hozirgi amalni bekor qilish\n"
+        "Panel:\n"
+        "1. Yangi harajat qo'shish\n"
+        "2. Bugungi hisobotni olish\n"
+        "3. Admin ga fikr va murojaatingizni yuborish\n"
+    )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     check_user_exists = await db.is_user_exists(user_id)
@@ -103,6 +116,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Bot started")
     application.add_handler(conv_resgister)
+    application.add_handler(CommandHandler("help", help))
     application.add_handlers(hnd_rp.handlers)
     application.add_handler(hnd_fd.conv_feedback)
     application.add_handler(hnd_tr.conv_new_transaction)
