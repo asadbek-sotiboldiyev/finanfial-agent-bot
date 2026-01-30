@@ -16,7 +16,7 @@ from telegram.ext import (
     filters,
 )
 
-import database_async as db
+import database_pgsql as db
 import handlers.adminpanel as hnd_ad
 import handlers.feedback as hnd_fd
 import handlers.reports as hnd_rp
@@ -104,6 +104,7 @@ async def lifespan(app: FastAPI):
     timezone_uz = pytz.timezone("Asia/Tashkent")
     defaults = Defaults(tzinfo=timezone_uz)
     application = Application.builder().token(TOKEN).defaults(defaults).build()
+    await db.init_pool()
     await db.init_database()
 
     conv_resgister = ConversationHandler(
@@ -134,6 +135,7 @@ async def lifespan(app: FastAPI):
     if application:
         await application.stop()
         await application.shutdown()
+    await db.close_pool()
 
 
 app = FastAPI(lifespan=lifespan)

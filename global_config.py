@@ -13,7 +13,7 @@ TOKEN = str(os.getenv("BOT_TOKEN"))
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID"))
 WEBHOOK_PATH = "/webhook"
 APP_URL = str(os.getenv("APP_URL"))
-PORT = 8000
+PORT = int(os.getenv("PORT"))
 
 
 MAIN_KEYBOARDS = [

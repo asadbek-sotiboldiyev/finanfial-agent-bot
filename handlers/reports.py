@@ -5,7 +5,7 @@ from telegram.ext import (
     filters,
 )
 
-import database_async as db
+import database_pgsql as db
 
 TODAY = 1
 

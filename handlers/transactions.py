@@ -10,7 +10,7 @@ from telegram.ext import (
     filters,
 )
 
-import database_async as db
+import database_pgsql as db
 from agent import Agent
 from global_config import cancel, get_main_keyboards, send_message_to_admin
 
@@ -64,48 +64,65 @@ async def handle_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE)
     chat_id = update.effective_chat.id
     message_id = update.effective_message.id
     message = update.message.text
-    sent_time = update.message.date
+    sent_time = update.message.date.strftime("%Y-%m-%d %H:%M:%S")
 
     await update.message.reply_text("Saqlanyabdi...")
 
     # save_message -> AI -> save_ai_extract -> save_transaction -> return to user
-
-    raw_message_id = await db.save_message(chat_id, message_id, message, sent_time)
-    status, transactions = await extract_and_save(chat_id, raw_message_id, message)
-    error_message = ""
-    if status != COMPLETED:
-        if status == ERROR:
-            error_message = "Xatolik yuz berdi"
-        elif status == EMPTY:
-            error_message = "So'rovingizdan ma'lumotlar topilmadi"
-        elif status == RESOURCE:
-            error_message = (
-                "Botga yuklama oshib ketti. Birozdan so'ng qayta urinib ko'ring"
+    try:
+        raw_message_id = await db.save_message(chat_id, message_id, message, sent_time)
+        status, transactions = await extract_and_save(chat_id, raw_message_id, message)
+        error_message = ""
+        if status != COMPLETED:
+            if status == ERROR:
+                error_message = "Xatolik yuz berdi"
+            elif status == EMPTY:
+                error_message = "So'rovingizdan ma'lumotlar topilmadi"
+            elif status == RESOURCE:
+                error_message = (
+                    "Botga yuklama oshib ketti. Birozdan so'ng qayta urinib ko'ring"
+                )
+                await send_message_to_admin("⚠️ So'rovlar limitdan oshib ketti")
+            await update.message.reply_text(
+                error_message, reply_markup=await get_main_keyboards(chat_id)
             )
-            await send_message_to_admin("⚠️ So'rovlar limitdan oshib ketti")
-        await update.message.reply_text(
-            error_message, reply_markup=await get_main_keyboards(chat_id)
-        )
+            await context.bot.delete_message(
+                chat_id=chat_id, message_id=int(message_id) + 1
+            )
+            return ConversationHandler.END
+
+        text_transactions = []
+        saved_income = 0
+        saved_expense = 0
+        for transaction in transactions:
+            if transaction["type"] == "out":
+                saved_expense += transaction["amount"]
+            else:
+                saved_income += transaction["amount"]
+            text_transactions.append(
+                ("↗️ " if transaction["type"] == "out" else "↙️ ")
+                + format(transaction["amount"], ",")
+                + " <b>"
+                + transaction["description"]
+                + "</b>"
+            )
+        saved_income = format(saved_income, ",")
+        saved_expense = format(saved_expense, ",")
+        text_transactions.append(f"💰Kirim: {saved_income} so'm\n💸Chiqim: {saved_expense} so'm")
         await context.bot.delete_message(
             chat_id=chat_id, message_id=int(message_id) + 1
         )
-        return ConversationHandler.END
-
-    text_transactioins = []
-    for transaction in transactions:
-        text_transactioins.append(
-            ("↗️ " if transaction["type"] == "out" else "↙️ ")
-            + format(transaction["amount"], ",")
-            + " <b>"
-            + transaction["description"]
-            + "</b>"
+        await update.message.reply_text(
+            "✅ Saqlandi\n\n" + "\n".join(text_transactions),
+            reply_markup=await get_main_keyboards(chat_id),
+            parse_mode="HTML",
         )
-    await context.bot.delete_message(chat_id=chat_id, message_id=int(message_id) + 1)
-    await update.message.reply_text(
-        "✅ Saqlandi\n\n" + "\n".join(text_transactioins),
-        reply_markup=await get_main_keyboards(chat_id),
-        parse_mode="HTML",
-    )
+    except Exception as e:
+        print("Error in TRANSACTION:", e)
+        await update.message.reply_text(
+            "⚠️ No'malum xatolik yuz berdi.\n/start orqali botni qayt ishga tushirib ko'ring"
+        )
+        await send_message_to_admin("⚠️ Transaction error: " + sent_time)
     return ConversationHandler.END
 
 

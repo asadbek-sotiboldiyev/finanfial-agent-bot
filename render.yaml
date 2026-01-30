@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: financial-agent-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL_NAME
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: PORT
+        value: 10000

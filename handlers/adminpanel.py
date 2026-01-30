@@ -14,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-import database_async as db
+import database_pgsql as db
 from global_config import (
     ADMIN_CHAT_ID,
     cancel,
@@ -35,7 +35,7 @@ PANEL_KEYBOARDS = ReplyKeyboardMarkup(
 
 async def get_statistic():
     user_count, raw_message_count, transaction_count = await db.get_basic_stats()
-    text = f"👤Foydalanuvchilar soni: {user_count[0]}\n✏️Yuborilgan xabarlar: {raw_message_count[0]}\n💾Umumiy yozilgan tranzaksiyalar: {transaction_count[0]}"
+    text = f"👤Foydalanuvchilar soni: {user_count}\n✏️Yuborilgan xabarlar: {raw_message_count}\n💾Umumiy yozilgan tranzaksiyalar: {transaction_count}"
     return text
 
 
@@ -90,7 +90,7 @@ async def send_message_to_users(update: Update, context: ContextTypes.DEFAULT_TY
     message = update.message.text
     users = await db.get_users_ids()
     for user in users:
-        await send_message_to_user(user[0], message)
+        await send_message_to_user(user, message)
     await update.message.reply_text(
         "Xabar yuborildi!",
         reply_markup=PANEL_KEYBOARDS,
